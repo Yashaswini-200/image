@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>AI Image Detector</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to left ,#0A0F1F, #0d171b);
+            color: white;
+            margin: 0;
+        }
+        .container {
+            background-color: #1E293B;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+            animation: popUp 0.8s ease;
+        }
+        @keyframes popUp {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        h2 {
+            margin-bottom: 10px;
+            color: #FFD700;
+        }
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #64748B;
+            border-radius: 10px;
+            background: #334155;
+            color: white;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        input[type="file"]:hover, input[type="text"]:hover {
+            border-color: #94A3B8;
+            background: #475569;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            background: linear-gradient(90deg, #4B5563, #9CA3AF);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #6B7280, #D1D5DB);
+            transform: scale(1.03);
+        }
+        .loading {
+            display: none;
+            margin-top: 15px;
+            font-style: italic;
+            color: #EAB308;
+        }
+        .error {
+            display: none;
+            color: #EF4444;
+            margin-top: 10px;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .ai { color: #EF4444; }
+        .natural { color: #10B981; }
+        .custom-hr {
+            margin: 20px 0;
+            border: 0;
+            border-top: 1px solid #334155;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Upload Image</h2>
+        <input type="file" name="file" id="file" accept="image/*">
+        <button onclick="handleUpload()">Predict from File</button>
+        <hr class="custom-hr">
+        <h2>Or Paste Image URL</h2>
+        <input type="text" id="imgUrl" placeholder="https://example.com/image.jpg">
+        <button onclick="handleUrl()">Predict from URL</button>
+        <div class="loading" id="loading">Processing...</div>
+        <div class="error" id="error"></div>
+        <p class="result" id="resultText"></p>
+    </div>
+
+    <script>
+        console.log("Script loaded");
+
+        function toggleLoading(state) {
+            console.log(`Toggle loading: ${state}`);
+            document.getElementById('loading').style.display = state ? 'block' : 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('resultText').textContent = '';
+        }
+
+        function handleUpload() {
+            console.log("Upload button clicked");
+            const fileInput = document.getElementById('file').files[0];
+            console.log("File input:", fileInput);
+
+            if (!fileInput) {
+                alert('Select an image first. No psychic powers enabled yet.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput);
+            toggleLoading(true);
+
+            $.ajax({
+                url: 'http://127.0.0.1:5000/predict',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    console.log("Upload response:", response);
+                    handleResponse(response);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Upload error:", xhr, status, error);
+                    handleError(xhr, status, error);
+                }
+            });
+        }
+
+        function handleUrl() {
+            console.log("URL button clicked");
+            const url = document.getElementById('imgUrl').value.trim();
+            console.log("Image URL:", url);
+
+            if (!url) {
+                alert('Paste the image URL. Telepathy is still under development.');
+                return;
+            }
+
+            toggleLoading(true);
+
+            $.ajax({
+                url: 'http://127.0.0.1:5000/predict',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ url: url }),
+                success: function (response) {
+                    console.log("URL response:", response);
+                    handleResponse(response);
+                },
+                error: function (xhr, status, error) {
+                    console.error("URL error:", xhr, status, error);
+                    handleError(xhr, status, error);
+                }
+            });
+        }
+
+        function handleResponse(response) {
+            console.log("Handling response...",response);
+            toggleLoading(false);
+            const resultText = document.getElementById('resultText');
+            const result = response.result;
+            console.log("Prediction result:", result);
+
+            if (result === "AI") {
+                resultText.innerHTML = 'Prediction: <span class="ai">AI-generated</span>';
+            } else if (result === "Real") {
+                resultText.innerHTML = 'Prediction: <span class="natural">Real Image</span>';
+            } else {
+                resultText.textContent = 'Prediction could not be determined.';
+            }
+        }
+
+        function handleError(xhr, status, error) {
+            console.log("Handling error...");
+            toggleLoading(false);
+            const errorBox = document.getElementById('error');
+            errorBox.style.display = 'block';
+            errorBox.textContent = `Error: ${xhr.responseText || error || 'Something went wrong 😵‍💫'}`;
+        }
+    console.log("Error message displayed");
+    </script>
+</body>
+</html>
