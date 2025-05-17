@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
-import logging
 
 # Import actual prediction functions
 from predictionFunction import predict_image, predict_from_url
@@ -84,4 +83,4 @@ def handle_prediction():
 
 # 🏁 Run the app
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5500, debug=True)
+    app.run(host='127.0.0.1', port=5000, debug=True)

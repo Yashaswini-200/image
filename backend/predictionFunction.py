@@ -52,7 +52,7 @@ def evaluate_on_folder(folder, label):
 
 if __name__ == "__main__":
     # Example usage for local file
-    image_path = ""  # Set your test image path here
+    image_path = r"C:\Users\YASHASWINI\OneDrive\Documents\ai_folder\ai image7.jpg"  # Set your test image path here
     if image_path:
         result = predict_image(image_path)
         print("🧠 Prediction (local file):", result)
