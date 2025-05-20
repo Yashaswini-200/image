@@ -21,20 +21,6 @@ def predict_image(image_path):
     print(f"Prediction: {result}")
     return result
 
-def predict_image_from_url(image_url):
-    try:
-        response = requests.get(image_url, timeout=10)
-        response.raise_for_status()
-        img = Image.open(BytesIO(response.content)).convert("RGB")
-        temp_path = "temp_url_image.jpg"
-        img.save(temp_path)
-        result = predict_image(temp_path)
-        os.remove(temp_path)
-        return result
-    except Exception as e:
-        print(f"Error fetching or processing image from URL: {e}")
-        return None
-
 if __name__ == "__main__":
     # Local file prediction
     test_image_path = "training_data/AI/7e34225424b78a952f0a3d160b.jpg"  # change this to your image path
