@@ -1,4 +1,3 @@
-# predictionFunction.py
 import joblib
 import numpy as np
 from featureExtraction import extract_features
