@@ -1,3 +1,4 @@
+# predictionFunction.py
 import joblib
 from featureExtraction import extract_features
 
@@ -8,6 +9,8 @@ model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
 def predict_image(image_input):
+    if model is None or scaler is None:
+        raise ValueError("Model and scaler must be provided!")
     features = extract_features(image_input)
     features_scaled = scaler.transform([features])
     prediction = model.predict(features_scaled)[0]
