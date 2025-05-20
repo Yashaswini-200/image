@@ -27,3 +27,4 @@ A project that detects whether an image is AI-generated or real by combining met
    ```bash
    git clone https://github.com/Yashaswini-200/image-detection.git
    cd image-detection
+"# image" 
