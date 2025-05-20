@@ -141,27 +141,6 @@
             });
         }
 
-        function handleUrl() {
-            const url = document.getElementById('imgUrl').value.trim();
-            if (!url) {
-                alert('Paste the image URL. Telepathy is still under development.');
-                return;
-            }
-
-            toggleLoading(true);
-
-            $.ajax({
-                url: API_URL,
-                type: 'POST',
-                crossDomain: true,
-                dataType: 'json',
-                contentType: 'application/json',
-                data: JSON.stringify({ url: url }),
-                success: handleResponse,
-                error: handleError
-            });
-        }
-
         function handleResponse(response) {
             toggleLoading(false);
             const resultText = document.getElementById('resultText');

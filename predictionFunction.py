@@ -39,7 +39,3 @@ if __name__ == "__main__":
     # Local file prediction
     test_image_path = "training_data/AI/7e34225424b78a952f0a3d160b.jpg"  # change this to your image path
     predict_image(test_image_path)
-
-    # URL prediction example
-    test_image_url = "https://example.com/image.jpg"
-    predict_image_from_url(test_image_url)
