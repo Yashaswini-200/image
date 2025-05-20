@@ -17,5 +17,5 @@ def predict_image(image_input):
     return "AI-generated" if prediction == 1 else "Real"
 
 if __name__ == "__main__":
-    test_path = "training_data/AI/7e34225424b78a952f0a3d160b.jpg"
+    test_path = r"C:\Users\YASHASWINI\Downloads\ChatGPT Image Apr 4, 2025, 06_59_17 PM.png"
     print(predict_image(test_path))

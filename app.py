@@ -1,28 +1,19 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify 
 import os
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 
-from predictionFunction import predict_image  # Your existing function
+from predictionFunction import predict_image  # Your prediction function
 
 app = Flask(__name__)
 CORS(app)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB max upload
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
-# Load model and scaler ONCE here
-import joblib
-MODEL_PATH = os.path.join(BASE_DIR, 'models', 'model.pkl')
-SCALER_PATH = os.path.join(BASE_DIR, 'models', 'scaler.pkl')
-model = joblib.load(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -53,19 +44,18 @@ def handle_prediction():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    # Save file safely
+    # Save the uploaded file
     file.save(filepath)
     print(f"📁 File saved at {filepath}")
 
     try:
-        # Pass loaded model and scaler to avoid reloading inside predict_image
-        result = predict_image(filepath, model=model, scaler=scaler)
+        # Pass ONLY filepath, no model argument here
+        result = predict_image(filepath)
         print(f"🔍 Prediction result: {result}")
     except Exception as e:
         print(f"❌ Error during prediction: {e}")
         return jsonify({'error': f'Failed to process the file: {str(e)}'}), 500
     finally:
-        # Clean up uploaded file no matter what
         if os.path.exists(filepath):
             os.remove(filepath)
             print(f"🧹 Removed uploaded file {filepath}")
