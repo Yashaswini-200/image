@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: image-detection-api
+    name: ai-image-detector
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: cd backend && pip install -r requirements.txt
     startCommand: python app.py
+    workingDir: backend
     envVars:
       - key: FLASK_ENV
         value: production
