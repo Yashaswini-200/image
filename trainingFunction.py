@@ -12,15 +12,16 @@ def load_dataset(folder_real, folder_ai):
     labels = []
 
     for label, folder in [(0, folder_real), (1, folder_ai)]:
-        for filename in os.listdir(folder):
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                path = os.path.join(folder, filename)
-                try:
-                    feat = extract_features(path)
-                    features.append(feat)
-                    labels.append(label)
-                except Exception as e:
-                    print(f"❌ Failed to extract from {filename}: {e}")
+        for root,_,files in os.walk(folder):
+            for filename in files:
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    path = os.path.join(root, filename)
+                    try:
+                        feat = extract_features(path)
+                        features.append(feat)
+                        labels.append(label)
+                    except Exception as e:
+                        print(f"❌ Failed to extract from {filename}: {e}")
 
     return np.array(features), np.array(labels)
 
