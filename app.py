@@ -28,8 +28,6 @@ def health_check():
 
 @app.route('/predict', methods=['POST'])
 def handle_prediction():
-    print("🔵 /predict endpoint hit")
-
     if 'file' not in request.files:
         return jsonify({'error': 'No file part in the request'}), 400
 
@@ -43,22 +41,19 @@ def handle_prediction():
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-    # Save the uploaded file
+    
     file.save(filepath)
-    print(f"📁 File saved at {filepath}")
 
     try:
-        # Pass ONLY filepath, no model argument here
         result = predict_image(filepath)
-        print(f"🔍 Prediction result: {result}")
+        return jsonify({'result': result})
     except Exception as e:
-        print(f"❌ Error during prediction: {e}")
-        return jsonify({'error': f'Failed to process the file: {str(e)}'}), 500
+        # THIS LINE: return actual error message instead of generic fallback
+        return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
     finally:
         if os.path.exists(filepath):
             os.remove(filepath)
-            print(f"🧹 Removed uploaded file {filepath}")
+
 
     return jsonify({'result': result})
 
