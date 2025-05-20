@@ -127,4 +127,4 @@ def train_model(real_folder, ai_folder):
 
 if __name__ == "__main__":
     os.makedirs('models', exist_ok=True)
-    train_model('backend/training_data/real_folder', 'backend/training_data/real_folder')
+    train_model('training_data/ai_folder', 'training_data/real_folder')
