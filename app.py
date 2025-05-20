@@ -3,7 +3,7 @@ import os
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 
-from predictionFunction import predict_image, predict_from_url
+from predictionFunction import predict_image
 
 app = Flask(__name__)
 CORS(app)
@@ -49,18 +49,6 @@ def handle_prediction():
             os.remove(filepath)
 
         return jsonify({'result': result})
-
-    if request.is_json and request.json and 'url' in request.json:
-        image_url = request.json['url']
-        try:
-            result = predict_from_url(image_url)
-        except Exception as e:
-            return jsonify({'error': f'Failed to process the image from URL: {str(e)}'}), 500
-
-        return jsonify({'result': result})
-
-    return jsonify({'error': 'No file or URL provided'}), 400
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
