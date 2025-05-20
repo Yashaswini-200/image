@@ -93,11 +93,11 @@
     <div class="container">
         <h2>Upload Image</h2>
         <input type="file" name="file" id="file" accept="image/*">
-        <button onclick="handleUpload()">Predict from File</button>
+        <button type="button" onclick="handleUpload()">Predict from File</button>
         <hr class="custom-hr">
         <h2>Or Paste Image URL</h2>
         <input type="text" id="imgUrl" placeholder="https://example.com/image.jpg">
-        <button onclick="handleUrl()">Predict from URL</button>
+        <button type="button" onclick="handleUrl()">Predict from URL</button>
         <div class="loading" id="loading">Processing...</div>
         <div class="error" id="error"></div>
         <p class="result" id="resultText"></p>
@@ -130,6 +130,7 @@
             $.ajax({
                 url: 'http://127.0.0.1:5000/predict',
                 type: 'POST',
+                crossDomain: true,
                 data: formData,
                 contentType: false,
                 processData: false,
@@ -159,6 +160,8 @@
             $.ajax({
                 url: 'http://127.0.0.1:5000/predict',
                 type: 'POST',
+                crossDomain: true,
+                dataType: 'json',
                 contentType: 'application/json',
                 data: JSON.stringify({ url: url }),
                 success: function (response) {
