@@ -3,7 +3,7 @@ import os
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 
-from predictionFunction import predict_image
+from predictionFunction import predict_image  # Make sure this is your working prediction module
 
 app = Flask(__name__)
 CORS(app)
@@ -11,7 +11,7 @@ CORS(app)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB max upload
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
@@ -30,25 +30,38 @@ def health_check():
 def handle_prediction():
     print("🔵 /predict endpoint hit")
 
-    if 'file' in request.files:
-        print("📁 File received in request")
-        file = request.files['file']
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
 
-        if not allowed_file(file.filename):
-            return jsonify({'error': 'Invalid file type.'}), 400
+    file = request.files['file']
 
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
 
-        try:
-            result = predict_image(filepath)
-        except Exception as e:
-            return jsonify({'error': f'Failed to process the file: {str(e)}'}), 500
-        finally:
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type. Allowed types: png, jpg, jpeg'}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Save file safely
+    file.save(filepath)
+    print(f"📁 File saved at {filepath}")
+
+    try:
+        result = predict_image(filepath)
+        print(f"🔍 Prediction result: {result}")
+    except Exception as e:
+        print(f"❌ Error during prediction: {e}")
+        return jsonify({'error': f'Failed to process the file: {str(e)}'}), 500
+    finally:
+        # Clean up uploaded file no matter what
+        if os.path.exists(filepath):
             os.remove(filepath)
+            print(f"🧹 Removed uploaded file {filepath}")
 
-        return jsonify({'result': result})
+    return jsonify({'result': result})
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
