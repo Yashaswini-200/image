@@ -1,130 +1,67 @@
 import os
-import numpy as np 
-from skimage import io, color
-from skimage.transform import resize
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import cross_val_predict, StratifiedKFold
-from sklearn.metrics import confusion_matrix, accuracy_score
-from sklearn.preprocessing import StandardScaler
+import numpy as np
 import joblib
-import logging
-from PIL import Image
-from PIL.ExifTags import TAGS
-def extract_features(image_path, num_bins=20, size=(256, 256)):
-    print(f"Processing image: {image_path}")
-    img = io.imread(image_path)
-    if img.ndim == 3 and img.shape[2] == 4:
-        img = color.rgba2rgb(img)
-    if img.ndim == 3:
-        img = color.rgb2gray(img)
-    img = resize(img, size, anti_aliasing=True)
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, confusion_matrix
+from featureExtraction import extract_features
 
-    # FFT features
-    F = np.fft.fft2(img)
-    Fshift = np.fft.fftshift(F)
-    log_F = np.log(1 + np.abs(Fshift))
-
-    fft_mean = np.mean(log_F)
-    fft_std = np.std(log_F)
-    fft_entropy = -np.sum(log_F * np.log(log_F + 1e-10))
-
-    print("FFT Mean:", fft_mean, "FFT Std:", fft_std, "FFT Entropy:", fft_entropy)
-
-    hist_vals, _ = np.histogram(log_F.flatten(), bins=num_bins, density=True)
-    print("Histogram:", hist_vals)
-
-    # Metadata features
-    try:
-        image = Image.open(image_path)
-        exif_data = image._getexif()
-        metadata_features = [0, 0, 0, 0, 0]
-        if exif_data:
-            for tag_id, value in exif_data.items():
-                tag = TAGS.get(tag_id, tag_id)
-                if isinstance(value, (str, int, float)):
-                    metadata_features.append(len(str(value)))
-        metadata_features = metadata_features[:5] if len(metadata_features) >= 5 else metadata_features + [0]*(5 - len(metadata_features))
-    except:
-        metadata_features = [0, 0, 0, 0, 0]
-
-    print("Metadata:", metadata_features)
-
-    return np.concatenate([[fft_mean, fft_std, fft_entropy], hist_vals, metadata_features])
-
-# ----- Training -----
-def get_all_images(folder):
-    exts = ('.jpg', '.jpeg', '.png')
-    return [f for f in os.listdir(folder) if f.lower().endswith(exts)]
-
-def train_model(real_folder, ai_folder):
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-    real_files = get_all_images(real_folder)
-    ai_files = get_all_images(ai_folder)
-
-    n = min(len(real_files), len(ai_files))
-    real_files = real_files[:n]
-    ai_files = ai_files[:n]
-    print(f"Training with {n} images from each class.")
-
+def load_images_and_labels(root_folder):
     features = []
     labels = []
-    skipped = 0
+    label_map = {"Real": 0, "AI": 1}
+    counts = {"Real": 0, "AI": 0}
 
-    for i in range(n):
-        try:
-            f_real = extract_features(os.path.join(real_folder, real_files[i]))
-            f_ai = extract_features(os.path.join(ai_folder, ai_files[i]))
-            if np.any(np.isnan(f_real)) or np.any(np.isnan(f_ai)):
-                skipped += 1
-                continue
-            features.append(f_real)
-            labels.append(0)  # real
-            features.append(f_ai)
-            labels.append(1)  # ai
-        except Exception as e:
-            print(f"Skipping due to error: {e}")
-            skipped += 1
+    for label_name, label_value in label_map.items():
+        folder_path = os.path.join(root_folder, label_name)
+        if not os.path.exists(folder_path):
+            print(f"Warning: Folder {folder_path} does not exist.")
+            continue
+        for filename in os.listdir(folder_path):
+            if filename.lower().endswith((".png", ".jpg", ".jpeg")):
+                full_path = os.path.join(folder_path, filename)
+                try:
+                    feature_vector = extract_features(full_path)
+                    features.append(feature_vector)
+                    labels.append(label_value)
+                    counts[label_name] += 1
+                except Exception as e:
+                    print(f"Error extracting features from {full_path}: {e}")
 
-    print(f"✅ Extracted {len(features)} valid feature vectors. Skipped {skipped}.")
+    print(f"Loaded {counts['Real']} real images and {counts['AI']} AI images.")
+    if abs(counts['Real'] - counts['AI']) > 0:
+        print("⚠️  Warning: Dataset is unbalanced. Consider balancing for better results.")
 
-    features = np.array(features)
-    labels = np.array(labels)
+    return np.array(features), np.array(labels)
+
+def main():
+    root_folder = "training_data"
+    X, y = load_images_and_labels(root_folder)
+    print("Feature matrix shape:", X.shape)
 
     scaler = StandardScaler()
-    features_norm = scaler.fit_transform(features)
-    joblib.dump(scaler, 'models/scaler.pkl')
-    print("💾 Scaler saved to models/scaler.pkl")
+    X_scaled = scaler.fit_transform(X)
 
-    if np.any(np.isnan(features_norm)):
-        print("⚠️ NaNs detected and removed.")
-        mask = ~np.any(np.isnan(features_norm), axis=1)
-        features_norm = features_norm[mask]
-        labels = labels[mask]
+    model = GradientBoostingClassifier()
+    model.fit(X_scaled, y)
 
-    if features_norm.shape[0] == 0:
-        raise ValueError("❌ No usable features. Check image quality or extractor.")
+    # Ensure models directory exists
+    os.makedirs("models", exist_ok=True)
+    joblib.dump(model, "models/model.pkl")
+    joblib.dump(scaler, "models/scaler.pkl")
 
-    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3)
-    model.fit(features_norm, labels)
-    #Training accuracy
-    train_preds = model.predict(features_norm)
-    train_acc = accuracy_score(labels, train_preds)
-    print(f"🎯 Training Accuracy: {train_acc:.4f}")
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    preds = cross_val_predict(model, features_norm, labels, cv=cv)
-    loss = 1 - accuracy_score(labels, preds)
-    print(f"✅ Cross-validation loss: {loss:.4f}")
+    y_pred = model.predict(X_scaled)
+    print("Training Accuracy:", accuracy_score(y, y_pred))
 
-    print("📊 Confusion Matrix:")
-    print(confusion_matrix(labels, preds))
+    scores = cross_val_score(model, X_scaled, y, cv=5)
+    print("Cross-val Accuracy:", scores.mean())
 
-    joblib.dump(model, 'models/model.pkl')
-    print("💾 Model saved to models/model.pkl")
-
-    return model
-
+    cm = confusion_matrix(y, y_pred)
+    print("Confusion Matrix (rows: true, cols: pred):")
+    print("        Pred_Real  Pred_AI")
+    print(f"True_Real   {cm[0,0]:8}  {cm[0,1]:7}")
+    print(f"True_AI     {cm[1,0]:8}  {cm[1,1]:7}")
 
 if __name__ == "__main__":
-    os.makedirs('models', exist_ok=True)
-    train_model('training_data/ai_folder', 'training_data/real_folder')
+    main()

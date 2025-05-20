@@ -1,48 +1,40 @@
 import numpy as np
-from skimage import io, color
-from skimage.transform import resize
-from PIL import Image
-from PIL.ExifTags import TAGS
+from PIL import Image, ExifTags
+import cv2
 
-def extract_features(image_path, num_bins=20, size=(256, 256)):
+def extract_fft_features(image_array, num_features=1000):
+    gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+    f = np.fft.fft2(gray)
+    fshift = np.fft.fftshift(f)
+    magnitude_spectrum = np.abs(fshift).flatten()
+    magnitude_spectrum = np.sort(magnitude_spectrum)[::-1]  # descending
+    if len(magnitude_spectrum) < num_features:
+        magnitude_spectrum = np.pad(magnitude_spectrum, (0, num_features - len(magnitude_spectrum)), mode='constant')
+    return magnitude_spectrum[:num_features]
+
+def extract_metadata_features(image_path):
     try:
-        print(f"🖼️ Processing: {image_path}")
-        img = io.imread(image_path)
-        if img.ndim == 3 and img.shape[2] == 4:
-            img = color.rgba2rgb(img)
-        if img.ndim == 3:
-            img = color.rgb2gray(img)
-        img = resize(img, size, anti_aliasing=True)
+        image = Image.open(image_path)
+        exif_data = image._getexif()
+        if exif_data is not None:
+            return [float(v) if isinstance(v, (int, float)) else 0.0 for v in exif_data.values()]
+        else:
+            return []
+    except Exception:
+        return []
 
-        F = np.fft.fft2(img)
-        Fshift = np.fft.fftshift(F)
-        log_F = np.log(1 + np.abs(Fshift))
+def extract_features(image_path):
+    try:
+        img = Image.open(image_path).convert("RGB")
+        img_array = np.array(img)
+        fft_features = extract_fft_features(img_array)
 
-        fft_mean = np.mean(log_F)
-        fft_std = np.std(log_F)
-        fft_entropy = -np.sum(log_F * np.log(log_F + 1e-10))
-        hist_vals, _ = np.histogram(log_F.flatten(), bins=num_bins, density=True)
+        metadata_features = extract_metadata_features(image_path)
+        metadata_features = metadata_features[:50]
+        if len(metadata_features) < 50:
+            metadata_features += [0.0] * (50 - len(metadata_features))
 
-        # Metadata
-        metadata_features = [0, 0, 0, 0, 0]
-        try:
-            image = Image.open(image_path)
-            exif_data = image._getexif()
-            if exif_data:
-                for tag_id, value in exif_data.items():
-                    tag = TAGS.get(tag_id, tag_id)
-                    if isinstance(value, (str, int, float)):
-                        metadata_features.append(len(str(value)))
-            metadata_features = metadata_features[:5] if len(metadata_features) >= 5 else metadata_features + [0] * (5 - len(metadata_features))
-        except Exception as meta_e:
-            print(f"⚠️ Metadata extraction failed: {meta_e}")
-            metadata_features = [0, 0, 0, 0, 0]
-
-        features = np.concatenate([[fft_mean, fft_std, fft_entropy], hist_vals, metadata_features])
-        if np.any(np.isnan(features)):
-            raise ValueError("❌ NaNs found in features!")
-        return features
-
+        return np.concatenate([fft_features, metadata_features])
     except Exception as e:
-        print(f"🚫 Failed to process {image_path}: {e}")
-        return None
+        print(f"Error processing {image_path}: {e}")
+        return np.zeros(1050)
