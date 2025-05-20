@@ -1,74 +1,64 @@
-from PIL import Image, ExifTags
-import numpy as np
+import os
 import cv2
+import numpy as np
+from PIL import Image, ExifTags
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+import joblib
+import os
 
-NUM_FFT_FEATURES = 1000
-NUM_META_FEATURES = 50
-TOTAL_FEATURES = NUM_FFT_FEATURES + NUM_META_FEATURES
+def extract_fft_features(image_path, size=256):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    image = cv2.resize(image, (size, size))
+    f = np.fft.fft2(image)
+    fshift = np.fft.fftshift(f)
+    magnitude_spectrum = 20 * np.log(np.abs(fshift) + 1)
+    return magnitude_spectrum.flatten()[:1000]
 
-def extract_fft_features(image_array, num_features=NUM_FFT_FEATURES):
+def extract_metadata_features(image_path):
     try:
-        gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
-        f = np.fft.fft2(gray)
-        fshift = np.fft.fftshift(f)
-        magnitude_spectrum = np.abs(fshift).flatten()
-        magnitude_spectrum = np.sort(magnitude_spectrum)[::-1]  # Top features
-        if len(magnitude_spectrum) < num_features:
-            magnitude_spectrum = np.pad(magnitude_spectrum, (0, num_features - len(magnitude_spectrum)), mode='constant')
-        return magnitude_spectrum[:num_features]
-    except Exception as e:
-        print(f"[FFT Error] {e}")
-        return np.zeros(num_features)
+        img = Image.open(image_path)
+        exif_data = img._getexif()
+        if exif_data is None:
+            return [0] * 5
+        decoded = {ExifTags.TAGS.get(k, k): v for k, v in exif_data.items()}
+        return [
+            1 if 'Make' in decoded else 0,
+            1 if 'Model' in decoded else 0,
+            1 if 'ISOSpeedRatings' in decoded else 0,
+            1 if 'ExposureTime' in decoded else 0,
+            1 if 'DateTime' in decoded else 0
+        ]
+    except:
+        return [0] * 5
 
-def extract_metadata_features(pil_image, num_features=NUM_META_FEATURES):
-    try:
-        exif_data = pil_image._getexif()
-        metadata = []
-        if exif_data:
-            for tag, value in exif_data.items():
-                if isinstance(value, (int, float)):
-                    metadata.append(float(value))
-                else:
-                    metadata.append(0.0)
-        # Pad or truncate to fixed size
-        metadata = metadata[:num_features]
-        if len(metadata) < num_features:
-            metadata += [0.0] * (num_features - len(metadata))
-        return metadata
-    except Exception as e:
-        print(f"[Metadata Error] {e}")
-        return [0.0] * num_features
-
-def extract_features(image_input):
-    try:
-        if isinstance(image_input, str):
-            img = Image.open(image_input).convert("RGB")
-            img_array = np.array(img)
-            metadata_features = extract_metadata_features(img)
-        elif isinstance(image_input, Image.Image):
-            img = image_input.convert("RGB")
-            img_array = np.array(img)
-            metadata_features = extract_metadata_features(img)
-        elif isinstance(image_input, np.ndarray):
-            img_array = image_input
-            metadata_features = [0.0] * NUM_META_FEATURES  # can't get metadata
-        else:
-            raise ValueError("Unsupported image input type.")
-
-        fft_features = extract_fft_features(img_array)
-        combined = np.concatenate([fft_features, metadata_features])
-        return combined
-    except Exception as e:
-        print(f"[Feature Extraction Error] {e}")
-        return np.zeros(TOTAL_FEATURES)
-
-# Test it standalone
-if __name__ == "__main__":
-    test_path = r"C:\Users\YASHASWINI\Downloads\ChatGPT Image Apr 4, 2025, 06_59_17 PM.png"
-    features = extract_features(test_path)
-    print(f"Feature vector shape: {features.shape}")
-    print(features)
-    print(f"Feature vector length: {len(features)}")
-    print(f"Feature vector: {features}")
-    print(f"Feature vector (first 10 values): {features[:10]}")
-    print(f"Feature vector (last 10 values): {features[-10:]}")
+def extract_features_from_folder(folder, label):
+    features = []
+    labels = []
+    for filename in os.listdir(folder):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            try:
+                # Use your actual feature extraction function here
+                feat = extract_fft_features(os.path.join(folder, filename))
+                meta = extract_metadata_features(os.path.join(folder, filename))
+                combined = np.concatenate((feat, meta))
+                features.append(combined)
+                labels.append(label)
+            except Exception as e:
+                print(f"Error processing {filename}: {e}")
+    return features, labels
+def extract_features_from_folder(folder, label):
+    features = []
+    labels = []
+    for filename in os.listdir(folder):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            try:
+                # Use your actual feature extraction function here
+                feat = extract_fft_features(os.path.join(folder, filename))
+                meta = extract_metadata_features(os.path.join(folder, filename))
+                combined = np.concatenate((feat, meta))
+                features.append(combined)
+                labels.append(label)
+            except Exception as e:
+                print(f"Error processing {filename}: {e}")
+    return features, labels

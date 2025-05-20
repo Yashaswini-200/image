@@ -1,56 +1,42 @@
-import os
 import numpy as np
-import joblib
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import classification_report
+import joblib
+from featureExtraction import extract_features_from_folder
 from sklearn.metrics import confusion_matrix, accuracy_score
-from featureExtraction import extract_features
 
-def load_dataset(folder_real, folder_ai):
-    features = []
-    labels = []
+# Load features
+real_features, real_labels = extract_features_from_folder("training_data/Real", 0)
+fake_features, fake_labels = extract_features_from_folder("training_data/AI", 1)
 
-    for label, folder in [(0, folder_real), (1, folder_ai)]:
-        for root,_,files in os.walk(folder):
-            for filename in files:
-                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    path = os.path.join(root, filename)
-                    try:
-                        feat = extract_features(path)
-                        features.append(feat)
-                        labels.append(label)
-                    except Exception as e:
-                        print(f"❌ Failed to extract from {filename}: {e}")
+X = np.array(real_features + fake_features)
+y = np.array(real_labels + fake_labels)
 
-    return np.array(features), np.array(labels)
+# Scale features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-def train_and_save_model():
-    folder_real = 'training_data/Real'
-    folder_ai = 'training_data/AI'
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-    X, y = load_dataset(folder_real, folder_ai)
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+clf = RandomForestClassifier(n_estimators=100, random_state=42)
+clf.fit(X_train, y_train)
+y_train_pred = clf.predict(X_train)
+train_acc=accuracy_score(y_train, y_train_pred)
+print(f"Training accuracy: {train_acc:.4f}")
 
-    model = GradientBoostingClassifier()
-    model.fit(X_scaled, y)
+cm_train = confusion_matrix(y_train, y_train_pred)
+print("Confusion Matrix (Train):")
+print(cm_train)
 
-    scores = cross_val_score(model, X_scaled, y, cv=5)
-    print(f"✅ Cross-validation accuracy: {scores.mean():.4f}")
+y_pred = clf.predict(X_test)
+print(classification_report(y_test, y_pred))
 
-    y_pred = model.predict(X_scaled)
-    print(f"🧠 Training Accuracy: {accuracy_score(y, y_pred):.4f}")
-    cm = confusion_matrix(y, y_pred)
-    print("📊 Confusion Matrix")
-    print("           Pred_Real  Pred_AI")
-    print(f"True_Real   {cm[0][0]:10}  {cm[0][1]:8}")
-    print(f"True_AI     {cm[1][0]:10}  {cm[1][1]:8}")
+cm_test = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix (Test):")
+print(cm_test)
 
-    os.makedirs('models', exist_ok=True)
-    joblib.dump(model, 'models/model.pkl')
-    joblib.dump(scaler, 'models/scaler.pkl')
-    print("💾 Model and scaler saved!")
-
-if __name__ == "__main__":
-    train_and_save_model()
+joblib.dump(clf, "models/model.pkl")
+joblib.dump(scaler, "models/scaler.pkl")
+print("Model and scaler saved.")
