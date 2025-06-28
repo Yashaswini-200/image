@@ -1,64 +1,43 @@
-import os
-import cv2
 import numpy as np
-from PIL import Image, ExifTags
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-import joblib
-import os
+import cv2
+from PIL import Image
+import torch
+import torchvision.transforms as transforms
+from torchvision import models
+import exifread
 
-def extract_fft_features(image_path, size=256):
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    image = cv2.resize(image, (size, size))
-    f = np.fft.fft2(image)
+# Load ResNet18 model (pretrained)
+resnet = models.resnet18(pretrained=True)
+resnet = torch.nn.Sequential(*list(resnet.children())[:-1])  # Remove classifier
+resnet.eval()
+
+# Image transformation
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+
+def extract_fft_features(img_path):
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    f = np.fft.fft2(img)
     fshift = np.fft.fftshift(f)
     magnitude_spectrum = 20 * np.log(np.abs(fshift) + 1)
-    return magnitude_spectrum.flatten()[:1000]
+    return magnitude_spectrum.flatten()[:2048]  # Trim to fixed length
 
-def extract_metadata_features(image_path):
-    try:
-        img = Image.open(image_path)
-        exif_data = img._getexif()
-        if exif_data is None:
-            return [0] * 5
-        decoded = {ExifTags.TAGS.get(k, k): v for k, v in exif_data.items()}
-        return [
-            1 if 'Make' in decoded else 0,
-            1 if 'Model' in decoded else 0,
-            1 if 'ISOSpeedRatings' in decoded else 0,
-            1 if 'ExposureTime' in decoded else 0,
-            1 if 'DateTime' in decoded else 0
-        ]
-    except:
-        return [0] * 5
+def extract_metadata_features(img_path):
+    with open(img_path, 'rb') as f:
+        tags = exifread.process_file(f, stop_tag='UNDEF', details=False)
+    return np.array([hash(str(v)) % 1000 for v in tags.values()][:100])  # Max 100 metadata features
 
-def extract_features_from_folder(folder, label):
-    features = []
-    labels = []
-    for filename in os.listdir(folder):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            try:
-                # Use your actual feature extraction function here
-                feat = extract_fft_features(os.path.join(folder, filename))
-                meta = extract_metadata_features(os.path.join(folder, filename))
-                combined = np.concatenate((feat, meta))
-                features.append(combined)
-                labels.append(label)
-            except Exception as e:
-                print(f"Error processing {filename}: {e}")
-    return features, labels
-def extract_features_from_folder(folder, label):
-    features = []
-    labels = []
-    for filename in os.listdir(folder):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            try:
-                # Use your actual feature extraction function here
-                feat = extract_fft_features(os.path.join(folder, filename))
-                meta = extract_metadata_features(os.path.join(folder, filename))
-                combined = np.concatenate((feat, meta))
-                features.append(combined)
-                labels.append(label)
-            except Exception as e:
-                print(f"Error processing {filename}: {e}")
-    return features, labels
+def extract_resnet_features(img_path):
+    image = Image.open(img_path).convert("RGB")
+    image = transform(image).unsqueeze(0)
+    with torch.no_grad():
+        features = resnet(image)
+    return features.view(-1).numpy()  # Flatten the output
+
+def extract_all_features(img_path):
+    fft_feat = extract_fft_features(img_path)
+    meta_feat = extract_metadata_features(img_path)
+    resnet_feat = extract_resnet_features(img_path)
+    return np.concatenate([fft_feat, meta_feat, resnet_feat])

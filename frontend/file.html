@@ -1,170 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <title>AI Image Detector</title>
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #0A0F1F 0%, #1e293b 100%);
-            color: #f1f5f9;
-            margin: 0;
-        }
-        .container {
-            background: rgba(30, 41, 59, 0.98);
-            padding: 36px 28px 32px 28px;
-            border-radius: 18px;
-            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
-            max-width: 410px;
-            width: 95%;
-            animation: popUp 0.7s cubic-bezier(.68,-0.55,.27,1.55);
-        }
-        @keyframes popUp {
-            from { transform: scale(0.92); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        h2 {
-            margin-bottom: 14px;
-            color: #FFD700;
-            letter-spacing: 1px;
-            text-align: center;
-        }
-        input[type="file"] {
-            width: 100%;
-            padding: 13px;
-            border: 2px dashed #64748B;
-            border-radius: 12px;
-            background: #334155;
-            color: #f1f5f9;
-            margin-bottom: 14px;
-            transition: border-color 0.3s, background 0.3s;
-            font-size: 1rem;
-        }
-        input[type="file"]:hover {
-            border-color: #94A3B8;
-            background: #475569;
-        }
-        button {
-            width: 100%;
-            padding: 13px;
-            margin-top: 10px;
-            background: linear-gradient(90deg, #4B5563, #9CA3AF);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1.08rem;
-            letter-spacing: 0.5px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        button:hover {
-            background: linear-gradient(90deg, #6B7280, #D1D5DB);
-            transform: scale(1.035);
-        }
-        .loading {
-            display: none;
-            margin-top: 18px;
-            font-style: italic;
-            color: #EAB308;
-            text-align: center;
-        }
-        .error {
-            display: none;
-            color: #EF4444;
-            margin-top: 14px;
-            text-align: center;
-            font-size: 1.05rem;
-        }
-        .result {
-            margin-top: 24px;
-            font-size: 1.22rem;
-            font-weight: bold;
-            text-align: center;
-            letter-spacing: 0.5px;
-        }
-        .ai { color: #EF4444; }
-        .natural { color: #10B981; }
-        .file-label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 1.07rem;
-            color: #fbbf24;
-            font-weight: 500;
-            letter-spacing: 0.2px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+  <title>AI Image Detector</title>
+
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #0A0F1F 0%, #1e293b 100%);
+      color: #f1f5f9;
+      margin: 0;
+    }
+    .container {
+      background: rgba(30, 41, 59, 0.98);
+      padding: 36px 28px 32px 28px;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
+      max-width: 410px;
+      width: 95%;
+      animation: popUp 0.7s cubic-bezier(.68,-0.55,.27,1.55);
+    }
+    @keyframes popUp {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    h2 {
+      margin-bottom: 14px;
+      color: #FFD700;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 13px;
+      border: 2px dashed #64748B;
+      border-radius: 12px;
+      background: #334155;
+      color: #f1f5f9;
+      margin-bottom: 14px;
+      transition: border-color 0.3s, background 0.3s;
+      font-size: 1rem;
+    }
+    input[type="file"]:hover {
+      border-color: #94A3B8;
+      background: #475569;
+    }
+    button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 10px;
+      background: linear-gradient(90deg, #4B5563, #9CA3AF);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.08rem;
+      letter-spacing: 0.5px;
+      transition: background 0.3s, transform 0.2s;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #6B7280, #D1D5DB);
+      transform: scale(1.035);
+    }
+    .loading {
+      display: none;
+      margin-top: 18px;
+      font-style: italic;
+      color: #EAB308;
+      text-align: center;
+    }
+    .error {
+      display: none;
+      color: #EF4444;
+      margin-top: 14px;
+      text-align: center;
+      font-size: 1.05rem;
+    }
+    .result {
+      margin-top: 24px;
+      font-size: 1.22rem;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+    .ai { color: #EF4444; }
+    .natural { color: #10B981; }
+    .file-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.07rem;
+      color: #fbbf24;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Upload Image</h2>
-        <label for="file" class="file-label">Select image file</label>
-        <input type="file" name="file" id="file" accept="image/*" title="Select an image file to upload" placeholder="Choose image file">
-        <button type="button" onclick="handleUpload()">Predict from File</button>
-        <div class="loading" id="loading">Processing...</div>
-        <div class="error" id="error"></div>
-        <p class="result" id="resultText"></p>
-    </div>
+  <div class="container">
+    <h2>Upload Image</h2>
+    <label for="file" class="file-label">Select image file</label>
+    <input type="file" name="file" id="file" accept="image/*">
+    <button type="button" onclick="handleUpload()">Predict from File</button>
+    <div class="loading" id="loading">Processing...</div>
+    <div class="error" id="error"></div>
+    <p class="result" id="resultText"></p>
+  </div>
 
-    <script>
-        const API_URL = 'https://image-emp5.onrender.com/predict';
+  <script>
+    const API_URL = 'https://image-emp5.onrender.com/predict';
 
-        function toggleLoading(state) {
-            document.getElementById('loading').style.display = state ? 'block' : 'none';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('resultText').textContent = '';
-        }
+    function toggleLoading(state) {
+      document.getElementById('loading').style.display = state ? 'block' : 'none';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('resultText').textContent = '';
+    }
 
-        function handleUpload() {
-            const fileInput = document.getElementById('file').files[0];
-            if (!fileInput) {
-                alert('Select an image first. No psychic powers enabled yet.');
-                return;
-            }
+    function handleUpload() {
+      const fileInput = document.getElementById('file').files[0];
+      if (!fileInput) {
+        alert('Select an image first. No psychic powers enabled yet.');
+        return;
+      }
 
-            const formData = new FormData();
-            formData.append('file', fileInput);
-            toggleLoading(true);
+      const formData = new FormData();
+      formData.append('file', fileInput);
+      toggleLoading(true);
 
-            $.ajax({
-                url: API_URL,
-                type: 'POST',
-                crossDomain: true,
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: handleResponse,
-                error: handleError
-            });
-        }
+      $.ajax({
+        url: API_URL,
+        type: 'POST',
+        crossDomain: true,
+        data: formData,
+        contentType: false,
+        processData: false,
+        success: handleResponse,
+        error: handleError
+      });
+    }
 
-        function handleResponse(response) {
-            toggleLoading(false);
-            const resultText = document.getElementById('resultText');
-            const result = response.result;
+    function handleResponse(response) {
+      toggleLoading(false);
+      const resultText = document.getElementById('resultText');
+      const result = response.result?.toLowerCase();
 
-            if (result === "AI") {
-                resultText.innerHTML = 'Prediction: <span class="ai">AI-generated</span>';
-            } else if (result === "Real") {
-                resultText.innerHTML = 'Prediction: <span class="natural">Real Image</span>';
-            } else {
-                resultText.textContent = 'Prediction could not be determined.';
-            }
-        }
+      if (result && result.includes("ai")) {
+        resultText.innerHTML = 'Prediction: <span class="ai">AI-generated</span>';
+      } else if (result && result.includes("real")) {
+        resultText.innerHTML = 'Prediction: <span class="natural">Real Image</span>';
+      } else {
+        resultText.textContent = 'Prediction could not be determined.';
+      }
+    }
 
-        function handleError(xhr, status, error) {
-            toggleLoading(false);
-            const errorBox = document.getElementById('error');
-            errorBox.style.display = 'block';
-            errorBox.textContent = `Error: ${xhr.responseText || error || 'Something went wrong 😵‍💫'}`;
-        }
-    </script>
+    function handleError(xhr, status, error) {
+      toggleLoading(false);
+      const errorBox = document.getElementById('error');
+      errorBox.style.display = 'block';
+      errorBox.textContent = `Error: ${xhr.responseText || error || 'Something went wrong 😵‍💫'}`;
+    }
+  </script>
 </body>
 </html>

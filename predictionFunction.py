@@ -12,10 +12,9 @@ def predict_image(image_path, model_path="models/model.pkl", scaler_path="models
 
     scaled = scaler.transform(combined)
     prediction = model.predict(scaled)[0]
-    return "AI-Generated" if prediction == 1 else "Real"
+    return "AI-Generated" if prediction == 0 else "Real"
 
 if __name__ == "__main__":
-    import sys
-    image_path = r"C:\Users\YASHASWINI\Downloads\waves.jpg"
+    image_path = r"C:\Users\YASHASWINI\Downloads\ai image.jpg"
 
     print(f"Prediction: {predict_image(image_path)}")

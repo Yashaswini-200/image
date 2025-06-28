@@ -1,42 +1,45 @@
+import os
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 import joblib
-from featureExtraction import extract_features_from_folder
-from sklearn.metrics import confusion_matrix, accuracy_score
+from featureExtraction import extract_all_features
 
-# Load features
-real_features, real_labels = extract_features_from_folder("training_data/Real", 0)
-fake_features, fake_labels = extract_features_from_folder("training_data/AI", 1)
+def train_model(real_dir, ai_dir, model_path='model.pkl', scaler_path='scaler.pkl'):
+    X, y = [], []
 
-X = np.array(real_features + fake_features)
-y = np.array(real_labels + fake_labels)
+    # Load real images
+    for file in os.listdir(real_dir):
+        if file.endswith(('.jpg', '.png', '.jpeg')):
+            path = os.path.join(real_dir, file)
+            features = extract_all_features(path)
+            X.append(features)
+            y.append(0)
 
-# Scale features
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+    # Load AI images
+    for file in os.listdir(ai_dir):
+        if file.endswith(('.jpg', '.png', '.jpeg')):
+            path = os.path.join(ai_dir, file)
+            features = extract_all_features(path)
+            X.append(features)
+            y.append(1)
 
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+    X = np.array(X)
+    y = np.array(y)
 
-clf = RandomForestClassifier(n_estimators=100, random_state=42)
-clf.fit(X_train, y_train)
-y_train_pred = clf.predict(X_train)
-train_acc=accuracy_score(y_train, y_train_pred)
-print(f"Training accuracy: {train_acc:.4f}")
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-cm_train = confusion_matrix(y_train, y_train_pred)
-print("Confusion Matrix (Train):")
-print(cm_train)
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-y_pred = clf.predict(X_test)
-print(classification_report(y_test, y_pred))
+    clf = GradientBoostingClassifier()
+    clf.fit(X_train, y_train)
 
-cm_test = confusion_matrix(y_test, y_pred)
-print("Confusion Matrix (Test):")
-print(cm_test)
+    y_pred = clf.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    print(f"Validation Accuracy: {acc:.4f}")
 
-joblib.dump(clf, "models/model.pkl")
-joblib.dump(scaler, "models/scaler.pkl")
-print("Model and scaler saved.")
+    joblib.dump(clf, model_path)
+    joblib.dump(scaler, scaler_path)
